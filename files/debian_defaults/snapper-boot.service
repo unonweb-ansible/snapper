@@ -1,0 +1,17 @@
+[Unit]
+Description=Take snapper snapshot of root on boot
+ConditionPathExists=/etc/snapper/configs/root
+After=nss-user-lookup.target
+Documentation=man:snapper(8)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/snapper --config root create --cleanup-algorithm number --description "boot"
+
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_FOWNER CAP_CHOWN CAP_FSETID CAP_SETFCAP CAP_SYS_ADMIN CAP_SYS_MODULE CAP_IPC_LOCK CAP_SYS_NICE
+LockPersonality=true
+NoNewPrivileges=false
+PrivateNetwork=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_UNIX
+RestrictRealtime=true

@@ -1,0 +1,23 @@
+---
+snapper:
+  configs: 
+    add: [] # configs/...
+    rm: [] # /etc/snapper/configs/...
+  systemd:
+    cp: []
+    enable: []
+    disable: []
+  timeline:
+    service:
+      overrides: [] # snapper-timeline.service.d/...
+      reset: false
+    timer:
+      overrides: [] # snapper-timeline.timer.d/...
+      enabled: false
+      reset: false
+  boot:
+    timer:
+      enabled: false
+  apt:
+    pre_post:
+      state: absent

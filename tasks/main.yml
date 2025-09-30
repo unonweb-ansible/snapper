@@ -1,0 +1,146 @@
+---
+- name: snapper role
+  tags:
+    - snapper
+  block:
+
+  # snapper add config
+  - when: snapper.configs.add | length > 0
+    name: Copy {{ snapper.configs.add }} to /etc/snapper/configs
+    become: true
+    loop: "{{ snapper.configs.add }}"
+    ansible.builtin.copy:
+      src: "configs/{{ item }}"
+      dest: "/etc/snapper/configs/{{ item.split('/')[-1] }}" # fk/opt => opt
+      owner: root
+      group: root
+      mode: u=rw,g=,o=
+
+  # snapper rm config
+  - when: snapper.configs.rm | length > 0
+    name: Remove {{ snapper.configs.rm }} to /etc/snapper/configs
+    become: true
+    loop: "{{ snapper.configs.rm }}"
+    ansible.builtin.file:
+      path: "/etc/snapper/configs/{{ item.split('/')[-1] }}" # fk/opt => opt
+      state: absent
+
+  # snapper-timeline.service.d
+  - block:
+
+    # reset overrides
+    - when: snapper.timeline.timer.reset == true
+      name: Reset overrides /etc/systemd/system/snapper-timeline.service.d
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/system/snapper-timeline.service.d
+        state: absent
+
+    # mkdir overrides snapper-timeline.service
+    - name: Mkdir /etc/systemd/system/snapper-timeline.service.d
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/system/snapper-timeline.service.d
+        state: directory
+        mode: u=rwx,g=rx,o=rx
+
+    # copy overrides
+    - when: snapper.timeline.service.overrides | length > 0
+      name: Copy unit overrides to /etc/systemd/system/snapper-timeline.service.d
+      become: true
+      notify: systemctl --system daemon-reload
+      loop: "{{ snapper.timeline.service.overrides }}"
+      ansible.builtin.copy:
+        src: "snapper-timeline.service.d/{{ item }}"
+        dest: "/etc/systemd/system/snapper-timeline.service.d/{{ item }}"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+    
+  # snapper-timeline.timer.d
+  - block:
+  
+    - name: Enabled {{ snapper.timeline.timer.enabled }} snapper-timeline.timer
+      become: true
+      ansible.builtin.systemd_service:
+        name: snapper-timeline.timer
+        enabled: "{{ snapper.timeline.timer.enabled }}"
+
+    # reset overrides
+    - when: snapper.timeline.timer.reset == true
+      name: Reset overrides /etc/systemd/system/snapper-timeline.timer.d
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/system/snapper-timeline.timer.d
+        state: absent
+
+    # mkdir overrides snapper-timeline.timer
+    - name: Mkdir /etc/systemd/system/snapper-timeline.timer.d
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/system/snapper-timeline.timer.d
+        state: directory
+        mode: u=rwx,g=rx,o=rx
+
+    # copy overrides
+    - when: snapper.timeline.timer.overrides | length > 0
+      name: Copy unit overrides to /etc/systemd/system/snapper-timeline.timer.d
+      become: true
+      notify: systemctl --system daemon-reload
+      loop: "{{ snapper.timeline.timer.overrides }}"
+      ansible.builtin.copy:
+        src: "snapper-timeline.timer.d/{{ item }}"
+        dest: "/etc/systemd/system/snapper-timeline.timer.d/{{ item }}"
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+
+  # snapper-timeline.timer.d
+  - block:
+
+    - name: Enabled {{ snapper.boot.timer.enabled }} snapper-boot.timer
+      become: true
+      ansible.builtin.systemd_service:
+        name: snapper-boot.timer
+        enabled: "{{ snapper.boot.timer.enabled }}"
+
+  # apt pre post mechanism
+  - block:
+      
+    - when: snapper.apt.pre_post.state == "absent"
+      name: Remove /etc/apt/apt.conf.d/80snapper
+      become: true
+      ansible.builtin.file:
+        path: /etc/apt/apt.conf.d/80snapper
+        state: absent
+
+  # snapper.systemd.copy
+  - when: snapper.systemd.cp | length > 0
+    name: Copy {{ snapper.systemd.cp }}
+    become: true
+    notify: systemctl --system daemon-reload
+    loop: "{{ snapper.systemd.cp }}"
+    ansible.builtin.copy:
+      src: "{{ item }}"
+      dest: "/etc/systemd/system/{{ item }}"
+      owner: root
+      group: root
+      mode: u=rw,g=r,o=r
+
+  # snapper.systemd.enable
+  - when: snapper.systemd.enable | length > 0
+    name: Enable {{ snapper.systemd.enable }}
+    become: true
+    loop: "{{ snapper.systemd.enable }}"
+    ansible.builtin.systemd_service:
+      name: "{{ item }}"
+      enabled: true
+
+  # snapper.systemd.disable
+  - when: snapper.systemd.disable | length > 0
+    name: Disable {{ snapper.systemd.disable }}
+    become: true
+    loop: "{{ snapper.systemd.disable }}"
+    ansible.builtin.systemd_service:
+      name: "{{ item }}"
+      enabled: false
