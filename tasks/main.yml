@@ -4,6 +4,22 @@
     - snapper
   block:
 
+  # check if installed
+  - name: Check apt if snapper is already installed
+    become: true
+    ansible.builtin.apt:
+      name: snapper
+      state: present
+    check_mode: true # outputs "changed": false || "changed": true
+    ignore_errors: true
+    register: _apt_snapper
+
+  # assert
+  - name: Check conditions for snapper
+    ansible.builtin.assert:
+      that:
+      - _apt_snapper.changed == false # no change -> already installed
+
   # snapper add config
   - when: snapper.configs.add | length > 0
     name: Copy {{ snapper.configs.add }} to /etc/snapper/configs
