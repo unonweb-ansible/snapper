@@ -4,9 +4,14 @@ snapper:
     add: [] # configs/...
     rm: [] # /etc/snapper/configs/...
   systemd:
-    cp: []
-    enable: []
-    disable: []
+    system:
+      cp: []
+      enable: []
+      disable: []
+      overrides: [] # snapper-boot.service.d/override.conf -> /etc/systemd/system/snapper-boot.service.d/override.conf
+      reset: []
+      start: []
+      stop: []
   timeline:
     service:
       overrides: [] # snapper-timeline.service.d/...
@@ -15,9 +20,9 @@ snapper:
       overrides: [] # snapper-timeline.timer.d/...
       enabled: false
       reset: false
-  boot:
-    timer:
-      enabled: false
   apt:
     pre_post:
       state: absent
+
+# snapper-boot.timer
+# snapper-boot.service

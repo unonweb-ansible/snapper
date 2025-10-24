@@ -1,0 +1,85 @@
+# cp
+- when: snapper.systemd.cp | length > 0
+  name: Copy {{ snapper.systemd.cp }}
+  become: true
+  notify: systemctl --system daemon-reload
+  loop: "{{ snapper.systemd.cp }}"
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item.split('/')[-1] }}"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+# reset
+- when: snapper.systemd.reset | length > 0
+  name: Reset overrides {{ snapper.systemd.reset }}
+  loop: "{{ snapper.systemd.reset }}"
+  become: true
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.d"
+    state: absent
+
+# overrides
+- when: snapper.systemd.overrides | length > 0
+  block:
+
+  # mkdir overrides
+  - name: Mkdir in /etc/systemd/system/...
+    become: true
+    loop: "{{ snapper.systemd.overrides }}"
+    ansible.builtin.file:
+      path: "/etc/systemd/system/{{ item | dirname }}"
+      state: directory
+      owner: root
+      group: root
+      mode: o=rwx,g=rx,o=rx
+
+  # cp overrides
+  - name: Copy {{ snapper.systemd.overrides }}
+    become: true
+    notify: systemctl --system daemon-reload
+    loop: "{{ snapper.systemd.overrides }}"
+    ansible.builtin.copy:
+      src: "{{ item }}"
+      dest: "/etc/systemd/system/{{ item }}"
+      force: true
+      owner: root
+      group: root
+      mode: u=rw,g=r,o=r
+
+# enable
+- when: snapper.systemd.enable | length > 0
+  name: systemctl enable {{ snapper.systemd.enable }}
+  become: true
+  loop: "{{ snapper.systemd.enable }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+
+# disable
+- when: snapper.systemd.disable | length > 0
+  name: systemctl disable {{ snapper.systemd.disable }}
+  become: true
+  loop: "{{ snapper.systemd.disable }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: false
+
+# start
+- when: snapper.systemd.start | length > 0
+  name: systemctl start {{ snapper.systemd.start }}
+  become: true
+  loop: "{{ snapper.systemd.start }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+
+# stop
+- when: snapper.systemd.stop | length > 0
+  name: systemctl stop {{ snapper.systemd.stop }}
+  become: true
+  loop: "{{ snapper.systemd.stop }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
